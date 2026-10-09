@@ -1,3 +1,4 @@
+import { useNfts } from '@/hooks/useNfts'
 
 type Product = {
   name: string
@@ -7,65 +8,6 @@ type Product = {
   alt: string
   portrait?: boolean
 }
-
-const products: Product[] = [
-  {
-    name: "Emerald Ape #042",
-    price: "1.19 ETH",
-    image: "/assets/images/NFT%20Artwork%2003.png",
-    alt: "Macaco com jaqueta verde e óculos",
-  },
-  {
-    name: "Sage Nomad #009",
-    price: "1.69 ETH",
-    image: "/assets/images/NFT%20Artwork%2004.png",
-    alt: "Macaco com chapéu e moletom roxo",
-  },
-  {
-    name: "Neon Vessel #552",
-    price: "1.99 ETH",
-    oldPrice: "2.29 ETH",
-    image: "/assets/images/NFT%20Artwork%2005.png",
-    alt: "Macaco de terno claro",
-  },
-  {
-    name: "Cosmic Bloom #118",
-    price: "1.29 ETH",
-    image: "/assets/images/NFT%20Artwork%2006.png",
-    alt: "Macaco com chapéu e moletom roxo",
-    portrait: true,
-  },
-  {
-    name: "Violet Nomad #314",
-    price: "1.39 ETH",
-    image: "/assets/images/NFT%20Artwork%2007.png",
-    alt: "Macaco com roupa roxa",
-  },
-  {
-    name: "Ivory Baron #088",
-    price: "1.79 ETH",
-    image: "/assets/images/NFT%20Artwork%2008.png",
-    alt: "Macaco de terno bege",
-  },
-  {
-    name: "Golden Beat #207",
-    price: "0.99 ETH",
-    image: "/assets/images/NFT%20Artwork%2009.png",
-    alt: "Macaco dourado com fones de ouvido",
-  },
-  {
-    name: "Golden Echo #274",
-    price: "0.79 ETH",
-    image: "/assets/images/NFT%20Artwork%2010.png",
-    alt: "Arte digital de um macaco dourado",
-  },
-  {
-    name: "Golden Signal #160",
-    price: "0.39 ETH",
-    image: "/assets/images/NFT%20Artwork%2011.png",
-    alt: "Macaco dourado com fones de ouvido",
-  },
-]
 
 function ProductCard({ product }: { product: Product }) {
   return (
@@ -108,6 +50,19 @@ function ProductCard({ product }: { product: Product }) {
 }
 
 function ProductGrid() {
+    const { data, isPending, isError } = useNfts()
+
+    const products: Product[] = (data?.items ?? []).map((nft) => ({
+    name: nft.name,
+    price: `${nft.priceEth} ETH`,
+    oldPrice: nft.oldPriceEth
+        ? `${nft.oldPriceEth} ETH`
+        : undefined,
+    image: nft.image,
+    alt: nft.name,
+    portrait: nft.id === 'nft-06',
+    }))
+
   return (
     <section className="flex min-w-0 flex-1 flex-col items-end gap-20">
       {/* Abas e ordenação */}
@@ -162,11 +117,33 @@ function ProductGrid() {
         </div>
 
         {/* Catálogo */}
-        <div className="grid grid-cols-1 gap-x-8 gap-y-16 sm:grid-cols-2 xl:grid-cols-3">
-          {products.map((product) => (
-            <ProductCard key={product.image} product={product} />
-          ))}
-        </div>
+        {isPending ? (
+            <div
+                role="status"
+                aria-label="Carregando NFTs"
+                className="grid w-full grid-cols-1 gap-x-8 gap-y-16 sm:grid-cols-2 xl:grid-cols-3"
+            >
+                {Array.from({ length: 9 }, (_, index) => (
+                    <div
+                        key={index}
+                        aria-hidden="true"
+                        className="h-[350px] animate-pulse rounded-2xl bg-surface-card"
+                    />
+            ))}
+            </div>
+        ) : isError ? (
+            <p role="alert" className="text-foreground">
+                Não foi possível carregar os NFTs. Tente novamente.
+            </p>
+        ) : products.length === 0 ? (
+            <p className="text-foreground">Nenhum NFT encontrado.</p>
+        ) : (
+          <div className="grid w-full grid-cols-1 gap-x-8 gap-y-16 sm:grid-cols-2 xl:grid-cols-3">
+            {products.map((product) => (
+              <ProductCard key={product.image} product={product} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Paginação */}
