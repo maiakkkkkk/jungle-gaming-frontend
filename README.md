@@ -2,7 +2,7 @@
 
 Marketplace de NFTs implementado em React + TypeScript com Vite, seguindo o desafio de frontend com mocks MSW para APIs REST e eventos Socket.IO.
 
-**URL pública:** [a inserir após deploy]
+URL pública: https://jungle-gaming-frontend-one.vercel.app/
 
 ## Setup
 
@@ -22,7 +22,7 @@ npm install
 O projeto usa uma única variável de ambiente para ativar os mocks MSW:
 
 ```bash
-# Copie o arquivo de exemplo
+
 cp .env.example .env
 ```
 
@@ -83,7 +83,6 @@ location.reload()
 ### Reset de Cenário
 
 ```javascript
-// Limpa todos os mocks e restaura estado inicial
 localStorage.clear()
 location.reload()
 ```
@@ -172,17 +171,14 @@ location.reload()
 ```javascript
 localStorage.setItem('kurio:mock:payment-pending', 'true')
 localStorage.setItem('kurio:mock:manual-settlement', 'true')
-// Navegar para /payment e confirmar compra
-// Recarregar a página para ver recuperação
-// Liquidar via: window.__mocks?.settleOrder(orderId, 'confirmed')
+
 ```
 
 ### Simular Preço Alterado Durante Checkout
 
 ```javascript
-// No console, após adicionar item ao carrinho
 window.__mocks?.updateNftPrice('nft-03', '1.99', '1.19')
-// A interface deve bloquear confirmação até reconciliar
+
 ```
 
 ## Arquitetura
