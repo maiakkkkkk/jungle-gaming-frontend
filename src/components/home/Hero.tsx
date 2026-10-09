@@ -1,6 +1,6 @@
 function Hero() {
   return (
-    <section className="mx-auto mt-6 h-auto w-full max-w-[1200px] px-3 lg:mt-8 lg:h-96 lg:pl-10 lg:pr-0">
+    <section className="mx-auto mt-6 h-auto w-full max-w-[1200px] px-6 lg:mt-8 lg:h-96 lg:pl-10 lg:pr-0">
       <div className="flex w-full items-center gap-3 lg:h-full lg:justify-between">
         <div className="flex min-w-0 flex-1 flex-col items-start gap-4 lg:w-[600px] lg:flex-none lg:items-end lg:gap-11">
           <div className="flex w-full flex-col items-start gap-3 lg:gap-8">

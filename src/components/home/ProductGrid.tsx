@@ -20,8 +20,8 @@ function ProductCard({ product }: { product: Product }) {
       className="group flex min-w-0 flex-col gap-3"
     >
       <div
-        className={`flex h-72 items-start justify-center bg-surface-card ${
-          product.portrait ? 'px-5 pt-1.5 pb-2' : 'px-1 pt-6'
+        className={`flex h-48 items-start justify-center rounded-[20px] bg-surface-card ${
+          product.portrait ? 'px-3 pt-1 pb-2' : 'px-1 pt-4'
         }`}
       >
         <img
@@ -29,8 +29,8 @@ function ProductCard({ product }: { product: Product }) {
           alt={product.alt}
           className={
             product.portrait
-              ? 'h-full w-56 rounded-xl object-cover transition-transform group-hover:scale-[1.02]'
-              : 'size-64 rounded-2xl object-cover transition-transform group-hover:scale-[1.02]'
+              ? 'h-full w-40 rounded-xl object-cover transition-transform group-hover:scale-[1.02]'
+              : 'size-40 rounded-2xl object-cover transition-transform group-hover:scale-[1.02]'
           }
         />
       </div>
@@ -206,13 +206,13 @@ function ProductGrid() {
           <div
             role="status"
             aria-label="Carregando NFTs"
-            className="grid w-full grid-cols-1 gap-x-8 gap-y-16 sm:grid-cols-2 xl:grid-cols-3"
+            className="grid w-full grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3"
           >
             {Array.from({ length: 9 }, (_, index) => (
               <div
                 key={index}
                 aria-hidden="true"
-                className="h-[350px] animate-pulse rounded-2xl bg-surface-card"
+                className="h-[250px] animate-pulse rounded-2xl bg-surface-card"
               />
             ))}
           </div>
@@ -225,7 +225,7 @@ function ProductGrid() {
             {emptyMessage}
           </p>
         ) : (
-          <div className="grid w-full grid-cols-1 gap-x-8 gap-y-16 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid w-full grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
             {products.map((product) => (
               <ProductCard key={product.image} product={product} />
             ))}

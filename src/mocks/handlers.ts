@@ -1,5 +1,4 @@
 import { http, HttpResponse } from 'msw'
-import type { Nft } from '@/services/nfts'
 import type {
   Cart,
   CartItem,
@@ -10,144 +9,18 @@ import type {
   Order,
 } from '@/services/marketplace'
 import { authHandlers } from './authHandlers'
+import {
+  emitOrderUpdated,
+  ensureOrderMeta,
+  getOrderMeta,
+  isFlagEnabled,
+  MANUAL_SETTLEMENT_FLAG,
+  PAYMENT_PENDING_FLAG,
+  updateOrderMeta,
+} from './orderStore'
+import { nfts } from './nftStore'
 
 const PAGE_SIZE = 9
-
-const nfts: Nft[] = [
-  {
-    id: 'nft-03',
-    name: 'Emerald Ape #042',
-    price: '1.19',
-    image: '/assets/images/NFT%20Artwork%2003.png',
-    availableEditions: 12,
-    editions: [
-      { id: '1-50', label: '1/50', availableQuantity: 12 },
-    ],
-    collection: 'Arte digital',
-    collectionName: 'Kurio Apes',
-    network: 'Ethereum',
-    currency: 'ETH',
-    description:
-      'Um colecionável digital finalizado à mão da coleção Kurio Editions, verificado na Ethereum, com arte desbloqueável e acesso para colecionadores.',
-    attributes: ['Óculos', 'Esmeralda', 'Raro'],
-    contractAddress: '0x7A42...19E8',
-    creatorRoyalty: '5%',
-    rating: 4.8,
-    reviewCount: 19,
-  },
-  {
-    id: 'nft-04',
-    name: 'Sage Nomad #009',
-    price: '1.69',
-    image: '/assets/images/NFT%20Artwork%2004.png',
-    availableEditions: 8,
-    collection: 'Fotografia',
-    network: 'Ethereum',
-    currency: 'ETH',
-  },
-  {
-    id: 'nft-05',
-    name: 'Neon Vessel #552',
-    price: '1.99',
-    oldPrice: '2.29',
-    image: '/assets/images/NFT%20Artwork%2005.png',
-    availableEditions: 5,
-    collection: 'Música',
-    network: 'Ethereum',
-    currency: 'ETH',
-  },
-  {
-    id: 'nft-06',
-    name: 'Cosmic Bloom #118',
-    price: '1.29',
-    image: '/assets/images/NFT%20Artwork%2006.png',
-    availableEditions: 10,
-    collection: 'Arte 3D',
-    network: 'Polygon',
-    currency: 'POL',
-  },
-  {
-    id: 'nft-07',
-    name: 'Violet Nomad #314',
-    price: '1.39',
-    image: '/assets/images/NFT%20Artwork%2007.png',
-    availableEditions: 7,
-    collection: 'Colecionáveis',
-    network: 'Polygon',
-    currency: 'POL',
-  },
-  {
-    id: 'nft-08',
-    name: 'Ivory Baron #088',
-    price: '1.79',
-    image: '/assets/images/NFT%20Artwork%2008.png',
-    availableEditions: 6,
-    collection: 'Generativa',
-    network: 'Polygon',
-    currency: 'POL',
-  },
-  {
-    id: 'nft-09',
-    name: 'Golden Beat #207',
-    price: '0.99',
-    image: '/assets/images/NFT%20Artwork%2009.png',
-    availableEditions: 9,
-    collection: 'Jogos',
-    network: 'Solana',
-    currency: 'SOL',
-  },
-  {
-    id: 'nft-10',
-    name: 'Golden Echo #274',
-    price: '0.79',
-    image: '/assets/images/NFT%20Artwork%2010.png',
-    availableEditions: 5,
-    collection: 'Assinaturas',
-    network: 'Solana',
-    currency: 'SOL',
-  },
-  {
-    id: 'nft-11',
-    name: 'Golden Signal #160',
-    price: '0.39',
-    image: '/assets/images/NFT%20Artwork%2011.png',
-    availableEditions: 11,
-    collection: 'Utilidade',
-    network: 'Solana',
-    currency: 'SOL',
-  },
-  {
-    id: 'nft-16',
-    name: 'Digital Horizon #016',
-    price: '0.89',
-    image: '/assets/images/NFT%20Artwork%2016.png',
-    availableEditions: 8,
-    collection: 'Arte digital',
-    network: 'Ethereum',
-    currency: 'ETH',
-  },
-  {
-    id: 'nft-17',
-    name: 'Mystic Artifact #017',
-    price: '1.58',
-    image: '/assets/images/NFT%20Artwork%2017.png',
-    availableEditions: 6,
-    collection: 'Arte 3D',
-    network: 'Polygon',
-    currency: 'POL',
-  },
-  {
-    id: 'nft-18',
-    name: 'Solar Relic #018',
-    price: '1.29',
-    image: '/assets/images/NFT%20Artwork%2018.png',
-    availableEditions: 7,
-    collection: 'Jogos',
-    network: 'Solana',
-    currency: 'SOL',
-  },
-]
-
 type MockSession = { accessToken: string; userId: string; expiresAt: number }
 type StoredLists = Record<string, string[]>
 type StoredCarts = Record<string, Cart | CartItem[]>
@@ -157,6 +30,12 @@ const CARTS_KEY = 'kurio:mock:carts:v1'
 const SESSIONS_KEY = 'kurio:mock:sessions:v1'
 const ORDERS_KEY = 'kurio:mock:orders:v1'
 const IDEMPOTENCY_KEY = 'kurio:mock:order-idempotency:v1'
+/** Cenário de teste: atrasa a cotação REST para tornar visível a janela em que ela está desatualizada. */
+export const SLOW_QUOTE_FLAG = 'kurio:mock:slow-quote'
+/** Cenário de teste: atrasa a listagem do catálogo para tornar o skeleton observável. */
+export const SLOW_CATALOG_FLAG = 'kurio:mock:slow-catalog'
+/** Cenário de teste: atrasa a criação do pedido para tornar determinístico o clique repetido. */
+export const SLOW_ORDER_FLAG = 'kurio:mock:slow-order'
 
 function readStorage<T>(key: string, fallback: T): T {
   try {
@@ -281,6 +160,7 @@ function quoteCart(cart: Cart): CartQuote {
       lineTotal,
       availableQuantity,
       status,
+      version: nft?.version,
     }
   })
 
@@ -315,6 +195,7 @@ function quoteCart(cart: Cart): CartQuote {
     totals,
     couponCode: cart.couponCode,
     couponDiscountBps: discountBps,
+    quotedAt: new Date().toISOString(),
   }
 }
 
@@ -361,11 +242,14 @@ export const handlers = [
     const ownerId = userId ?? 'guest'
     return HttpResponse.json(userId ? mergeGuestCart(userId) : cartFor(ownerId))
   }),
-  http.get('/api/cart/quote', ({ request }) => {
+  http.get('/api/cart/quote', async ({ request }) => {
     const userId = currentUserId(request)
     if (hasBearerToken(request) && !userId) return unauthorized()
     const ownerId = userId ?? 'guest'
     const cart = userId ? mergeGuestCart(userId) : cartFor(ownerId)
+    if (isFlagEnabled(SLOW_QUOTE_FLAG)) {
+      await new Promise((resolve) => setTimeout(resolve, 600))
+    }
     return HttpResponse.json(quoteCart(cart))
   }),
   http.post('/api/cart/items', async ({ request }) => {
@@ -492,6 +376,11 @@ export const handlers = [
     return HttpResponse.json(saveCart(ownerId, cart))
   }),
   http.post('/api/orders', async ({ request }) => {
+    // Mesma técnica da cotação: janela determinística para o clique repetido
+    // alcançar o botão enquanto a primeira confirmação está em andamento.
+    if (isFlagEnabled(SLOW_ORDER_FLAG)) {
+      await new Promise((resolve) => setTimeout(resolve, 600))
+    }
     const userId = currentUserId(request)
     if (!userId) return unauthorized()
     const body = (await request.json()) as {
@@ -528,29 +417,39 @@ export const handlers = [
       return nft?.network !== wallet.network
     })
     if (incompatible) return orderError('NETWORK_MISMATCH', 'A rede da carteira não corresponde aos NFTs do pedido.', 422)
+    const declined = wallet.provider === 'Recusar pagamento'
+    const pending = !declined && isFlagEnabled(PAYMENT_PENDING_FLAG)
     const order: Order = {
       id: `ord_${crypto.randomUUID()}`,
-      status: wallet.provider === 'Recusar pagamento' ? 'declined' : 'confirmed',
+      status: declined ? 'declined' : pending ? 'pending' : 'confirmed',
       createdAt: new Date().toISOString(),
       wallet,
       lines: quote.lines,
       totals: quote.totals,
       couponCode: quote.couponCode,
-      transactionId: `0x${crypto.randomUUID().replaceAll('-', '').slice(0, 16).toUpperCase()}`,
-      declineReason: wallet.provider === 'Recusar pagamento' ? 'A simulação de pagamento foi recusada pelo provedor.' : undefined,
+      transactionId: declined || pending
+        ? undefined
+        : `0x${crypto.randomUUID().replaceAll('-', '').slice(0, 16).toUpperCase()}`,
+      declineReason: declined ? 'A simulação de pagamento foi recusada pelo provedor.' : undefined,
     }
     const orders = readStorage<StoredOrders>(ORDERS_KEY, {})
     orders[order.id] = order
     idempotency[scopedKey] = { orderId: order.id, fingerprint }
     window.localStorage.setItem(ORDERS_KEY, JSON.stringify(orders))
     window.localStorage.setItem(IDEMPOTENCY_KEY, JSON.stringify(idempotency))
+    const meta = ensureOrderMeta(order.id, userId)
+    order.version = meta.version
     if (order.status === 'confirmed') {
-      for (const line of quote.lines) {
-        const nft = nfts.find((candidate) => candidate.id === line.nftId)
-        const edition = nft?.editions?.find((candidate) => candidate.id === cart.items.find((item) => item.id === line.id)?.editionId)
-        if (edition) edition.availableQuantity -= line.quantity
-      }
+      applyConfirmedOrder(order, cart)
       saveCart(userId, { items: [] })
+      emitOrderUpdated(order)
+    } else if (order.status === 'declined') {
+      emitOrderUpdated(order)
+    } else if (!isFlagEnabled(MANUAL_SETTLEMENT_FLAG)) {
+      // Cenário de demonstração: liquida o pedido pendente automaticamente.
+      window.setTimeout(() => {
+        settleOrder(order.id, 'confirmed')
+      }, 4_000)
     }
     return HttpResponse.json(order, { status: 201 })
   }),
@@ -578,8 +477,12 @@ export const handlers = [
     return HttpResponse.json(nft)
   }),
 
-  http.get('/api/nfts', ({ request }) => {
+  http.get('/api/nfts', async ({ request }) => {
     const url = new URL(request.url)
+
+    if (isFlagEnabled(SLOW_CATALOG_FLAG)) {
+      await new Promise((resolve) => setTimeout(resolve, 600))
+    }
 
     const query =
       url.searchParams.get('q')?.trim().toLowerCase() ?? ''
@@ -665,3 +568,45 @@ export const handlers = [
     })
   }),
 ]
+
+function applyConfirmedOrder(order: Order, cart: Cart) {
+  for (const line of order.lines) {
+    const nft = nfts.find((candidate) => candidate.id === line.nftId)
+    const edition = nft?.editions?.find(
+      (candidate) => candidate.id === cart.items.find((item) => item.id === line.id)?.editionId,
+    )
+    if (edition) {
+      edition.availableQuantity = Math.max(0, edition.availableQuantity - line.quantity)
+    }
+  }
+}
+
+/**
+ * Liquida um pedido pendente. Pedidos confirmados ou recusados são terminais:
+ * chamadas repetidas para o mesmo identificador são ignoradas, sem reaplicar
+ * efeitos nem regredir o estado.
+ */
+export function settleOrder(orderId: string, nextStatus: 'confirmed' | 'declined'): Order | null {
+  const orders = readStorage<StoredOrders>(ORDERS_KEY, {})
+  const order = orders[orderId]
+  const meta = getOrderMeta(orderId)
+  if (!order || !meta || order.status !== 'pending') return null
+
+  if (nextStatus === 'confirmed') {
+    applyConfirmedOrder(order, cartFor(meta.ownerId))
+    order.transactionId = `0x${crypto.randomUUID().replaceAll('-', '').slice(0, 16).toUpperCase()}`
+    saveCart(meta.ownerId, { items: [] })
+  } else {
+    order.declineReason = 'A simulação de pagamento foi recusada pelo provedor.'
+  }
+  order.status = nextStatus
+  const bumped = updateOrderMeta(orderId, (current) => ({
+    ...current,
+    version: current.version + 1,
+  }))
+  if (bumped) order.version = bumped.version
+  orders[orderId] = order
+  window.localStorage.setItem(ORDERS_KEY, JSON.stringify(orders))
+  emitOrderUpdated(order)
+  return order
+}

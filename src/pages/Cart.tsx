@@ -13,6 +13,7 @@ import {
   useUpdateCartItem,
 } from '@/hooks/useMarketplace'
 import type { CartQuoteLine, CurrencyQuote } from '@/services/marketplace'
+import { useQuoteStale } from '@/realtime/useRealtimeFeed'
 
 type CartError = { code?: string; message?: string }
 
@@ -311,6 +312,9 @@ function CartPage() {
   const navigate = useNavigate()
   const [couponInput, setCouponInput] = useState('')
   const [couponError, setCouponError] = useState<string>()
+  // Cotação desatualizada enquanto um `nft.updated` do carrinho chegou e a
+  // reconciliação com a API REST ainda não foi concluída.
+  const quoteStale = useQuoteStale(quoteQuery.data)
 
   if (cartQuery.isPending || quoteQuery.isPending) {
     return (
@@ -416,6 +420,13 @@ function CartPage() {
         </nav>
 
         <h1 className="mb-8 text-2xl font-bold sm:text-3xl">Carrinho de NFTs</h1>
+
+        {quoteStale && (
+          <p role="status" className="-mt-4 mb-6 text-sm text-text-secondary">
+            Uma alteração de preço/estoque chegou em tempo real. A cotação está
+            sendo reconciliada com o servidor.
+          </p>
+        )}
 
         {items.length === 0 ? (
           <section className="rounded-2xl border border-border bg-surface-card px-6 py-16 text-center">

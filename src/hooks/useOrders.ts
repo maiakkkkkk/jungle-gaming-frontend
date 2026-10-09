@@ -13,6 +13,9 @@ export function useOrder(id: string | undefined) {
     enabled: Boolean(user && id),
     meta: { private: true },
     retry: false,
+    // Pedidos pendentes são consultados novamente até atingirem um estado terminal.
+    refetchInterval: (query) =>
+      query.state.data?.status === 'pending' ? 5_000 : false,
   })
 }
 

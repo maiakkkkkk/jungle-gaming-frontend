@@ -109,14 +109,19 @@ function AuthDialog({
   onRegistered,
 }: AuthDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
+  const triggerRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     const dialog = dialogRef.current
     if (!dialog) return
 
+    triggerRef.current = document.activeElement as HTMLElement | null
     dialog.showModal()
     return () => {
       if (dialog.open) dialog.close()
+      // Remover o diálogo do DOM não restaura o foco: devolvê-lo ao gatilho
+      // que o abriu mantém a navegação por teclado coerente.
+      triggerRef.current?.focus()
     }
   }, [])
 

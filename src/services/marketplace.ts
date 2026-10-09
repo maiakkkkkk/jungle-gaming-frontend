@@ -24,6 +24,8 @@ export type CartQuoteLine = {
   lineTotal?: string
   availableQuantity?: number
   status: 'available' | 'unavailable' | 'insufficient-stock'
+  /** Versão do NFT usada para calcular a linha. */
+  version?: number
 }
 
 export type CurrencyQuote = {
@@ -39,6 +41,8 @@ export type CartQuote = {
   totals: CurrencyQuote[]
   couponCode?: string
   couponDiscountBps: number
+  /** Momento do cálculo; usado para detectar cotação desatualizada por eventos. */
+  quotedAt?: string
 }
 
 export type CartCouponInput = { code: string }
@@ -55,6 +59,8 @@ export type Order = {
   couponCode?: string
   transactionId?: string
   declineReason?: string
+  /** Versão monotônica do pedido, incrementada em cada transição de estado. */
+  version?: number
 }
 export type CreateOrderInput = {
   idempotencyKey: string

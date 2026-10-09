@@ -12,6 +12,14 @@ dist
 dist-ssr
 *.local
 
+# Environment variables (contain secrets or local config)
+.env
+.env.*
+!.env.example
+.env.local
+.env.development
+.env.production
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -22,3 +30,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Test and audit artifacts
+test-results/
+playwright-report/
+lighthouse-reports/
+
+# Reference materials (internal use only)
+referencias-visuais/
