@@ -1,6 +1,9 @@
+import { Link, useNavigate, useSearch } from '@tanstack/react-router'
+import type { CatalogSearch } from '@/router'
 import { useNfts } from '@/hooks/useNfts'
 
 type Product = {
+  id: string
   name: string
   price: string
   oldPrice?: string
@@ -11,10 +14,14 @@ type Product = {
 
 function ProductCard({ product }: { product: Product }) {
   return (
-    <article className="flex min-w-0 flex-col gap-3">
+    <Link
+      to="/nft/$nftId"
+      params={{ nftId: product.id }}
+      className="group flex min-w-0 flex-col gap-3"
+    >
       <div
         className={`flex h-72 items-start justify-center bg-surface-card ${
-          product.portrait ? "px-5 pt-1.5 pb-2" : "px-1 pt-6"
+          product.portrait ? 'px-5 pt-1.5 pb-2' : 'px-1 pt-6'
         }`}
       >
         <img
@@ -22,8 +29,8 @@ function ProductCard({ product }: { product: Product }) {
           alt={product.alt}
           className={
             product.portrait
-              ? "h-full w-56 rounded-xl object-cover"
-              : "size-64 rounded-2xl object-cover"
+              ? 'h-full w-56 rounded-xl object-cover transition-transform group-hover:scale-[1.02]'
+              : 'size-64 rounded-2xl object-cover transition-transform group-hover:scale-[1.02]'
           }
         />
       </div>
@@ -45,98 +52,178 @@ function ProductCard({ product }: { product: Product }) {
           )}
         </div>
       </div>
-    </article>
+    </Link>
   )
 }
 
 function ProductGrid() {
-    const { data, isPending, isError } = useNfts()
+  const { data, isPending, isError } = useNfts()
+  const search = useSearch({ from: '/' })
+  const navigate = useNavigate({ from: '/' })
 
-    const products: Product[] = (data?.items ?? []).map((nft) => ({
+  const products: Product[] = (data?.items ?? []).map((nft) => ({
+    id: nft.id,
     name: nft.name,
-    price: `${nft.priceEth} ETH`,
-    oldPrice: nft.oldPriceEth
-        ? `${nft.oldPriceEth} ETH`
-        : undefined,
+    price: `${nft.price} ${nft.currency}`,
+    oldPrice: nft.oldPrice
+      ? `${nft.oldPrice} ${nft.currency}`
+      : undefined,
     image: nft.image,
     alt: nft.name,
     portrait: nft.id === 'nft-06',
-    }))
+  }))
+
+  const currentPage = data?.page ?? search.page ?? 1
+  const totalPages = data?.totalPages ?? 1
+  const activeView = search.view ?? 'all'
+
+  function selectView(view: CatalogSearch['view']) {
+    void navigate({
+      resetScroll: false,
+      search: (previous) => {
+        const current = previous as CatalogSearch
+
+        return {
+          ...current,
+          view,
+          page: 1,
+        }
+      },
+    })
+  }
+
+  function changeSort(sort: NonNullable<CatalogSearch['sort']>) {
+    void navigate({
+      resetScroll: false,
+      search: (previous) => {
+        const current = previous as CatalogSearch
+
+        return {
+          ...current,
+          sort,
+          page: 1,
+        }
+      },
+    })
+  }
+
+  function goToPage(page: number) {
+    void navigate({
+      resetScroll: false,
+      search: (previous) => {
+        const current = previous as CatalogSearch
+
+        return {
+          ...current,
+          page,
+        }
+      },
+    })
+  }
+
+  const emptyMessage =
+    search.view === 'new'
+      ? 'Ainda não há dados para novos lançamentos.'
+      : search.view === 'trending'
+        ? 'Ainda não há dados de NFTs em alta.'
+        : 'Nenhum NFT encontrado para esses filtros.'
+
+  const tabClass = (isActive: boolean) =>
+    `cursor-pointer border-b-2 pb-2 text-base font-medium leading-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+      isActive
+        ? 'border-primary text-text-accent'
+        : 'border-transparent text-foreground hover:text-text-accent'
+    }`
 
   return (
     <section className="flex min-w-0 flex-1 flex-col items-end gap-20">
-      {/* Abas e ordenação */}
       <div className="flex w-full flex-col gap-8">
+        {/* Abas e ordenação */}
         <div className="flex w-full flex-wrap items-center justify-between gap-6">
-          <nav aria-label="Categorias do catálogo">
-            <div className="relative flex items-center gap-5">
-              <button
-                type="button"
-                aria-current="page"
-                className="pb-2 text-base font-medium leading-4 text-text-accent"
-              >
-                Todos os NFTs
-              </button>
-
-              <button
-                type="button"
-                className="pb-2 text-base font-medium leading-4 text-foreground"
-              >
-                Novos lançamentos
-              </button>
-
-              <button
-                type="button"
-                className="pb-2 text-base font-medium leading-4 text-foreground"
-              >
-                Em alta
-              </button>
-
-              <span className="absolute bottom-0 left-0 h-0.5 w-24 bg-primary" />
-            </div>
-          </nav>
-
-          <div className="flex items-center gap-2 text-base text-foreground">
-            <span>Ordenar por:</span>
+          <nav
+            aria-label="Categorias do catálogo"
+            className="flex items-center gap-5"
+          >
+            <button
+              type="button"
+              aria-current={activeView === 'all' ? 'page' : undefined}
+              onClick={() => selectView(undefined)}
+              className={tabClass(activeView === 'all')}
+            >
+              Todos os NFTs
+            </button>
 
             <button
               type="button"
-              className="flex items-center gap-2"
-              aria-label="Ordenar NFTs"
+              aria-current={activeView === 'new' ? 'page' : undefined}
+              onClick={() => selectView('new')}
+              className={tabClass(activeView === 'new')}
             >
-              Listados recentemente
+              Novos lançamentos
+            </button>
+
+            <button
+              type="button"
+              aria-current={activeView === 'trending' ? 'page' : undefined}
+              onClick={() => selectView('trending')}
+              className={tabClass(activeView === 'trending')}
+            >
+              Em alta
+            </button>
+          </nav>
+
+          <label className="flex items-center gap-2 text-base text-foreground">
+            <span>Ordenar por:</span>
+
+            <span className="relative flex items-center gap-2">
+              <select
+                aria-label="Ordenar NFTs"
+                value={search.sort ?? 'recent'}
+                onChange={(event) =>
+                  changeSort(
+                    event.currentTarget.value as NonNullable<
+                      CatalogSearch['sort']
+                    >,
+                  )
+                }
+                className="min-w-0 max-w-[220px] cursor-pointer appearance-none bg-transparent pr-1 text-foreground outline-none focus-visible:text-text-accent"
+              >
+                <option value="recent">Listados recentemente</option>
+              </select>
 
               <img
                 src="/assets/icons/two-toned/Iconly/Arrow%20-%20Down%202.svg"
                 alt=""
                 aria-hidden="true"
-                className="size-4"
+                className="pointer-events-none size-4"
               />
-            </button>
-          </div>
+            </span>
+          </label>
         </div>
 
         {/* Catálogo */}
         {isPending ? (
-            <div
-                role="status"
-                aria-label="Carregando NFTs"
-                className="grid w-full grid-cols-1 gap-x-8 gap-y-16 sm:grid-cols-2 xl:grid-cols-3"
-            >
-                {Array.from({ length: 9 }, (_, index) => (
-                    <div
-                        key={index}
-                        aria-hidden="true"
-                        className="h-[350px] animate-pulse rounded-2xl bg-surface-card"
-                    />
+          <div
+            role="status"
+            aria-label="Carregando NFTs"
+            className="grid w-full grid-cols-1 gap-x-8 gap-y-16 sm:grid-cols-2 xl:grid-cols-3"
+          >
+            {Array.from({ length: 9 }, (_, index) => (
+              <div
+                key={index}
+                aria-hidden="true"
+                className="h-[350px] animate-pulse rounded-2xl bg-surface-card"
+              />
             ))}
-            </div>
+          </div>
         ) : isError ? (
-            <p role="alert" className="text-foreground">
-                Não foi possível carregar os NFTs. Tente novamente.
-            </p>
+          <p role="alert" className="text-foreground">
+            Não foi possível carregar os NFTs. Tente novamente.
+          </p>
         ) : products.length === 0 ? (
-            <p className="text-foreground">Nenhum NFT encontrado.</p>
+          <p className="py-8 text-foreground" role="status">
+            {emptyMessage}
+          </p>
         ) : (
           <div className="grid w-full grid-cols-1 gap-x-8 gap-y-16 sm:grid-cols-2 xl:grid-cols-3">
             {products.map((product) => (
@@ -147,41 +234,46 @@ function ProductGrid() {
       </div>
 
       {/* Paginação */}
-      <nav
-        aria-label="Paginação do catálogo"
-        className="flex items-center gap-2"
-      >
-        <button
-          type="button"
-          aria-current="page"
-          className="flex size-9 items-center justify-center rounded-sm bg-primary text-lg font-bold text-primary-foreground"
+      {data && data.total > 0 && (
+        <nav
+          aria-label="Paginação do catálogo"
+          className="flex items-center gap-2"
         >
-          1
-        </button>
+          {Array.from(
+            { length: totalPages },
+            (_, index) => index + 1,
+          ).map((page) => (
+            <button
+              key={page}
+              type="button"
+              aria-current={page === currentPage ? 'page' : undefined}
+              onClick={() => goToPage(page)}
+              className={`flex size-9 items-center justify-center rounded-sm border border-border text-lg ${
+                page === currentPage
+                  ? 'bg-primary font-bold text-primary-foreground'
+                  : 'text-foreground hover:bg-surface-raised'
+              }`}
+            >
+              {page}
+            </button>
+          ))}
 
-        {[2, 3, 4].map((page) => (
           <button
-            key={page}
             type="button"
-            className="flex size-9 items-center justify-center rounded-sm border border-border text-lg text-foreground"
+            aria-label="Próxima página"
+            disabled={currentPage >= totalPages}
+            onClick={() => goToPage(currentPage + 1)}
+            className="flex size-9 items-center justify-center rounded-sm border border-border transition-colors hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {page}
+            <img
+              src="/assets/icons/curved/Arrow%20-%20Right%202.svg"
+              alt=""
+              aria-hidden="true"
+              className="size-4"
+            />
           </button>
-        ))}
-
-        <button
-          type="button"
-          aria-label="Próxima página"
-          className="flex size-9 items-center justify-center rounded-sm border border-border"
-        >
-          <img
-            src="/assets/icons/curved/Arrow%20-%20Right.svg"
-            alt=""
-            aria-hidden="true"
-            className="size-4"
-          />
-        </button>
-      </nav>
+        </nav>
+      )}
     </section>
   )
 }

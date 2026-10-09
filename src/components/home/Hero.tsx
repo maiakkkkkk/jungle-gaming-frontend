@@ -1,23 +1,23 @@
 function Hero() {
   return (
-    <section className="mx-auto mt-8 h-96 w-full max-w-[1200px] pl-10">
-      <div className="flex h-full w-full items-center justify-between">
-        <div className="flex w-[600px] flex-col items-end gap-11">
-          <div className="flex w-full flex-col items-start gap-8">
+    <section className="mx-auto mt-6 h-auto w-full max-w-[1200px] px-3 lg:mt-8 lg:h-96 lg:pl-10 lg:pr-0">
+      <div className="flex w-full items-center gap-3 lg:h-full lg:justify-between">
+        <div className="flex min-w-0 flex-1 flex-col items-start gap-4 lg:w-[600px] lg:flex-none lg:items-end lg:gap-11">
+          <div className="flex w-full flex-col items-start gap-3 lg:gap-8">
             <div className="flex w-full flex-col items-start gap-1">
               <div className="flex w-full flex-col items-start gap-2">
                 <span className="text-sm font-medium leading-4 tracking-wider text-foreground">
                   Bem-vindo à Kurio
                 </span>
 
-                <h1 className="text-5xl font-bold leading-[70px] text-foreground">
+                <h1 className="text-lg font-bold leading-7 text-foreground min-[390px]:text-xl sm:text-2xl lg:text-5xl lg:leading-[70px]">
                   SEJA DONO DO FUTURO
                   <br />
                   DA ARTE DIGITAL
                 </h1>
               </div>
 
-              <p className="w-[557px] text-sm leading-6 text-muted-foreground">
+              <p className="w-full text-[11px] leading-4 text-muted-foreground sm:text-xs lg:w-[557px] lg:text-sm lg:leading-6">
                 Descubra NFTs selecionados de criadores emergentes e
                 consagrados. Colecione arte digital rara, apoie artistas e
                 tenha uma parte da cultura da internet.
@@ -40,9 +40,9 @@ function Hero() {
         </div>
 
         <img
-          src="public\assets\images\Frame 136.png"
+          src="/assets/images/Frame%20136.png"
           alt="Obra de arte digital em destaque"
-          className="size-96 rounded-3xl object-cover"
+          className="size-28 shrink-0 rounded-2xl object-cover sm:size-32 lg:size-96 lg:rounded-3xl"
         />
       </div>
     </section>
